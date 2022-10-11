@@ -1,0 +1,19 @@
+# IDEs
+.idea
+.vscode
+.lvimrc
+*.code-workspace
+*.swp
+
+# MacOS
+.DS_Store
+
+# Python
+__pycache__
+.pytest_cache
+.python-version
+.pyc
+.ipynb_checkpoints
+
+# Data
+data
