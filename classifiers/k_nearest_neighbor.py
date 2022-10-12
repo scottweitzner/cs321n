@@ -1,6 +1,7 @@
 from builtins import range
 from builtins import object
 import numpy as np
+from scipy import stats
 
 
 class KNearestNeighbor(object):
@@ -42,7 +43,7 @@ class KNearestNeighbor(object):
           test data, where y[i] is the predicted label for the test point X[i].
         """
         if num_loops == 0:
-            dists = self.compute_distances_no_loops(x)
+            dists = self.compute_distances(x)
         elif num_loops == 1:
             dists = self.compute_distances(x)
         elif num_loops == 2:
@@ -99,10 +100,25 @@ class KNearestNeighbor(object):
         Input / Output: Same as compute_distances_two_loops
         """
 
-        squares: np.ndarray = (x[:, np.newaxis] - self.x_train) ** 2
-        return np.sqrt(squares.sum(axis=2))
+        # shape: (5000,): one number for each image in the train set
+        #   representing the sum of squared pixel components
+        a = np.sum(self.x_train**2, axis=1)
 
-    def predict_labels(self, dists, k=1):
+        # shape: (500, 1): single vector of one number for each image in the
+        #   test set representing the sum of squared pixel components.
+        b = np.sum(x**2, axis=1)[:, np.newaxis]
+
+        # a + b
+        # shape: (500, 5000): the sum of the single value in each test image vector
+        #   and each value in a
+
+        # shape: (500, 5000): multiply a (500, 3072) matrix by a (3072, 5000) matrix
+        #   to get a (500, 5000) matrix
+        c = 2 * np.dot(x, self.x_train.T)
+
+        return np.sqrt(a + b - c)
+
+    def predict_labels(self, distances: np.ndarray, k=1):
         """
         Given a matrix of distances between test points and training points,
         predict a label for each test point.
@@ -115,35 +131,10 @@ class KNearestNeighbor(object):
         - y: A numpy array of shape (num_test,) containing predicted labels for the
           test data, where y[i] is the predicted label for the test point X[i].
         """
-        num_test = dists.shape[0]
+        num_test = distances.shape[0]
         y_pred = np.zeros(num_test)
         for i in range(num_test):
-            # A list of length k storing the labels of the k nearest neighbors to
-            # the ith test point.
-            closest_y = []
-            #########################################################################
-            # TODO:                                                                 #
-            # Use the distance matrix to find the k nearest neighbors of the ith    #
-            # testing point, and use self.y_train to find the labels of these       #
-            # neighbors. Store these labels in closest_y.                           #
-            # Hint: Look up the function numpy.argsort.                             #
-            #########################################################################
-            # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
-
-            # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-            #########################################################################
-            # TODO:                                                                 #
-            # Now that you have found the labels of the k nearest neighbors, you    #
-            # need to find the most common label in the list closest_y of labels.   #
-            # Store this label in y_pred[i]. Break ties by choosing the smaller     #
-            # label.                                                                #
-            #########################################################################
-            # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
-
-            # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+            lowest_score_indexes = np.argsort(distances[i])[0:k]
+            closest = [self.y_train[idx] for idx in lowest_score_indexes]
+            y_pred[i] = stats.mode(closest, keepdims=True)[0]
         return y_pred
